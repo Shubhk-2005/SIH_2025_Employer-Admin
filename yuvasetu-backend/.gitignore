@@ -6,6 +6,7 @@
 # Firebase Admin SDK credentials
 *firebase*adminsdk*.json
 firebase-service-account.json
+*firebase*adminsdk-fbsvc-f7399ddf87*.json
 
 # Python
 __pycache__/

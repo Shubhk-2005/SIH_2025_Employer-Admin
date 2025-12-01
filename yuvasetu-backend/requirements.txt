@@ -11,3 +11,5 @@ pydantic-settings==2.6.1
 python-dotenv==1.0.1
 
 firebase-admin==6.5.0
+sentence-transformers==2.5.1
+transformers==4.44.2    

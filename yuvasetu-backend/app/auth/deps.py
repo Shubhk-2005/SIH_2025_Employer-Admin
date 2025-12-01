@@ -1,55 +1,65 @@
-from typing import Annotated
+# app/auth/deps.py
+
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer
-from fastapi.security.http import HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 import firebase_admin
-from firebase_admin import auth as firebase_auth
+from firebase_admin import credentials, auth as firebase_auth
 
-security = HTTPBearer()
+from app.config import settings
 
-class EmployerUser(BaseModel):
-    uid: str
-    email: str
+# Initialize Firebase Admin SDK once
+if not firebase_admin._apps:
+    cred = credentials.Certificate(settings.FIREBASE_SERVICE_ACCOUNT_PATH)
+    firebase_admin.initialize_app(cred)
+
+
+# Only accept "Bearer" tokens
+security = HTTPBearer(auto_error=True)
+
+
+class EmployerUser:
+    """
+    Represents the authenticated employer from Firebase.
+    """
+
+    def __init__(self, uid: str, email: str | None):
+        self.uid = uid
+        self.email = email
+
 
 async def get_current_employer(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> EmployerUser:
     """
-    Dependency to extract & verify the Firebase ID token from the Authorization header.
-    Returns an EmployerUser if valid, raises 401 otherwise.
+    Verify Firebase ID token from Authorization header and return EmployerUser.
+    Expects header: Authorization: Bearer <ID_TOKEN>
     """
+    if credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid auth scheme",
+        )
+
     token = credentials.credentials
-    
+
     try:
-        # ✅ Get the EMPLOYER Firebase app
-        try:
-            employer_app = firebase_admin.get_app('employer')
-        except ValueError:
-            # Fallback to default app if named app doesn't exist
-            employer_app = firebase_admin.get_app()
-        
-        # ✅ Verify token using EMPLOYER Firebase app
-        decoded = firebase_auth.verify_id_token(token, app=employer_app)
-        
-        uid = decoded.get("uid")
-        email = decoded.get("email", "")
-        
-        if not uid:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing UID"
-            )
-        
-        return EmployerUser(uid=uid, email=email)
-    
-    except firebase_admin.exceptions.FirebaseError as e:
+        # verify_id_token validates signature, expiry, audience, etc.
+        decoded = firebase_auth.verify_id_token(token)
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token verification failed: {str(e)}"
+            detail="Invalid or expired token",
         )
-    except Exception as e:
+
+    uid = decoded.get("uid")
+    email = decoded.get("email")
+
+    if not uid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication error: {str(e)}"
+            detail="Invalid token payload",
         )
+
+    return EmployerUser(uid=uid, email=email)
+# You can now use get_current_employer as a dependency in your FastAPI routes to protect endpoints and access the authenticated employer's info.
