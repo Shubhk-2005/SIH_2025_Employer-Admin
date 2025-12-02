@@ -12,4 +12,7 @@ python-dotenv==1.0.1
 
 firebase-admin==6.5.0
 sentence-transformers==2.5.1
-transformers==4.44.2    
+transformers==4.44.2   
+faiss-cpu>=1.8.0
+torch>=2.1.0
+numpy>=1.24.3
