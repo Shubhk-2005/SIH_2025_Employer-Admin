@@ -5,7 +5,8 @@ class Settings(BaseSettings):
     MONGODB_URI: str
     MONGODB_DB: str
     FIREBASE_SERVICE_ACCOUNT_PATH: str
-
+    FIREBASE_ADMIN_SERVICE_ACCOUNT_PATH: str
+    
     class Config:
         env_file = ".env"
         extra = "ignore"
