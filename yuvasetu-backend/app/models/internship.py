@@ -27,6 +27,9 @@ class Internship(Document):
     stipend: Optional[str] = None
     sector: Optional[str] = None
 
+    # Vector embedding for semantic search
+    embedding: Optional[List[float]] = None
+
     # Duration
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
